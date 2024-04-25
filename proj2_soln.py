@@ -53,7 +53,7 @@ def problem1(pub_e, pub_n, oracle):
         oracle.run_6bits(ct)
     end = time.perf_counter_ns()
     real_time = (end - start) / reps
-    for i in range(len(mock_oracles)):
+    for i in range(len(times)):
         reps = 2000
         start = time.perf_counter_ns()
         for _ in range(reps):
@@ -63,7 +63,6 @@ def problem1(pub_e, pub_n, oracle):
     min_time = min(times)
     min_indexes = [ind for ind, ele in enumerate(times) if ele == min_time]
     result = random.choice(min_indexes)
-    print(result)
     return result
 
 
@@ -160,17 +159,17 @@ if __name__ == '__main__':
     # key = key1
     print(format(key['d'], 'b').zfill(2048))
 
-    """# Problem 1
+    # Problem 1
     print("Problem 1:")
     oracle = uva_rsa.DecryptOracleA(key["d"], key["n"])
     if problem1(key["e"], key["n"], oracle) == uva_rsa.prefix(key["d"], 6):
-        print("Problem 1 correct")"""
+        print("Problem 1 correct")
 
-    # problem 2
+    """# problem 2
     print("Problem 2:")
     oracle = uva_rsa.DecryptOracleB(key["d"], key["n"])
     if problem2(key["e"], key["n"], oracle) == uva_rsa.prefix(key["d"], 3):
-        print("Problem 2 correct")
+        print("Problem 2 correct")"""
 
 """# Problem 3
  print("Problem 3:")
