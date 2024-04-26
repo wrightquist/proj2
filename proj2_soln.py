@@ -1,3 +1,4 @@
+from precomputed_keys import random_keys
 import uva_rsa
 import secrets
 import time
@@ -42,6 +43,17 @@ class SixBitOracleDecrypt:
         mod_exp(ct, self.__d, self.__n)
 
 
+class FullOracleDecrypt:
+    __d, __n, = 0, 0
+
+    def __init__(self, d, n):
+        self.__d = d
+        self.__n = n
+
+    def run(self, ct):
+        mod_exp(ct, self.__d, self.__n)
+
+
 def problem1(pub_e, pub_n, oracle):
     mock_oracles = [SixBitOracleDecrypt(x, pub_n) for x in range(0x00, 0x40)]
     times = [0.0 for _ in range(0x00, 0x40)]
@@ -66,34 +78,45 @@ def problem1(pub_e, pub_n, oracle):
     return result
 
 
+def bitPrefix(integer: int, bitlen):
+    return format(integer, 'b').zfill(2048)[0:bitlen]
+
+
 ###########################################################
 # Problem 2: 3-bit Prefix (continued)
 # Recover the first 3 bits of the secret key
 ########################################################### 
 def problem2(pub_e, pub_n, oracle):
-    # times = {"000": 0.0, "001": 0.0, "010": 0.0, "011": 0.0, "100": 0.0, "101": 0.0, "110": 0.0, "111": 0.0}
-    times = {"0000": 0.0, "0001": 0.0, "00000": 0.0, "00001": 0.0, "000": 0.0, "001": 0.0, "010": 0.0, "011": 0.0}
-    reps = 120
-    cts = [random.getrandbits(2048) for _ in range(reps)]
+    # prefix_probs = [0.62, 0.22, 0.14, 0.02]
+    prefix_probs = [0.62, 0.22]
+    # keys = [uva_rsa.rsa_gen() for _ in range(100)]
+    keys = random_keys
+    mock_oracles: list[list[FullOracleDecrypt]] = [[], []]
+    for k in keys:
+        prefix = int(bitPrefix(k["d"], 3), 2)
+        if prefix < len(prefix_probs):
+            mock_oracles[prefix].append(FullOracleDecrypt(k['d'], k['n']))
+    #times = [0, 0, 0, 0]
+    times = [0,0]
+    reps = 10
+    cts = [uva_rsa.rsa_enc(pub_e, pub_n, random.randint(0xabc, 0xabc12)) for _ in range(reps)]
     start = time.perf_counter_ns()
-    for i in range(reps):
+    for i in range(len(cts)):
         oracle.run(cts[i])
     end = time.perf_counter_ns()
-    real_time = ((end - start) / reps)
-    reps = reps // 2
-    for k in times:
-        keys = [int(k + format(random.getrandbits(2048 - len(k)), 'b'), 2) for x in range(reps)]
+    real_time = ((end - start) / len(cts))
+    for k in range(len(prefix_probs)):
         start = time.perf_counter_ns()
-        for i in range(len(keys)):
-            mod_exp(cts[i], keys[i], pub_n)
+        # for i in range(len(mock_oracles[k])):
+        for i in range(reps):
+            mock_oracles[k][i%len(mock_oracles[k])].run(cts[i%len(cts)])
         end = time.perf_counter_ns()
-        times[k] = abs(real_time - ((end - start) / len(keys)))
-    result = min(times, key=times.get)
-    print(times)
-    indexes = [ky for ky in times.keys() if times[ky] == times[result]]
-    result = random.choice(indexes)
-    print(result)
-    return int(result, 2)
+        times[k] = abs(real_time - ((end - start) / reps))
+        # times[k] = abs(((end - start) / reps))
+    min_time = min(times)
+    min_indexes = [ind for ind, ele in enumerate(times) if ele == min_time]
+    result = random.choice(min_indexes)
+    return result
 
 
 ###########################################################
@@ -159,17 +182,18 @@ if __name__ == '__main__':
     # key = key1
     print(format(key['d'], 'b').zfill(2048))
 
-    # Problem 1
+    """# Problem 1
     print("Problem 1:")
     oracle = uva_rsa.DecryptOracleA(key["d"], key["n"])
     if problem1(key["e"], key["n"], oracle) == uva_rsa.prefix(key["d"], 6):
-        print("Problem 1 correct")
+        print("Problem 1 correct")"""
 
-    """# problem 2
-    print("Problem 2:")
-    oracle = uva_rsa.DecryptOracleB(key["d"], key["n"])
-    if problem2(key["e"], key["n"], oracle) == uva_rsa.prefix(key["d"], 3):
-        print("Problem 2 correct")"""
+    # problem 2
+    for i in range(20):
+        key = uva_rsa.rsa_gen()
+        oracle = uva_rsa.DecryptOracleB(key["d"], key["n"])
+        if problem2(key["e"], key["n"], oracle) == uva_rsa.prefix(key["d"], 3):
+            print("v")
 
 """# Problem 3
  print("Problem 3:")
